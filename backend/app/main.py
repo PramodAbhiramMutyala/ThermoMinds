@@ -35,6 +35,7 @@ app.include_router(mitigation_router, prefix=settings.API_V1_STR)
 app.include_router(correlation_router, prefix=settings.API_V1_STR)
 app.include_router(agent_router, prefix=settings.API_V1_STR)
 app.include_router(fortyguard_router, prefix=settings.API_V1_STR)
+app.include_router(hotspots_router, prefix="/api")
 
 @app.get("/")
 async def root():
