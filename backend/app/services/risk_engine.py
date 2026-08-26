@@ -260,4 +260,9 @@ class HeatShieldRiskEngine:
             recommended_actions=actions
         )
 
+    @staticmethod
+    def calculate_operational_risk(*args, **kwargs):
+        from services.risk_engine import HeatShieldRiskEngine as ServiceRiskEngine
+        return ServiceRiskEngine.calculate_operational_risk(*args, **kwargs)
+
 risk_engine = HeatShieldRiskEngine()
