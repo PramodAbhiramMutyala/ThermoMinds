@@ -9,6 +9,7 @@ import HeatRiskTimeline from './components/HeatRiskTimeline';
 import TopHotspotsTable from './components/TopHotspotsTable';
 import InteractiveHeatMap from './components/InteractiveHeatMap';
 import AiAssistantPanel from './components/AiAssistantPanel';
+import SelectedLocationDashboard from './components/SelectedLocationDashboard';
 import { CITIES, MOCK_DASHBOARD_DATA } from './data/mockData';
 import { fetchHeatmapGeoJSON, fetchHotspots, fetchLocationSummary } from './services/api';
 
@@ -125,13 +126,25 @@ export default function App() {
         {activeTab === 'live' && (
           <div className="space-y-6">
             
-            {/* Top Row 4-Cards Grid: Heat Risk, Temperature, Persistence, Exceedance */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <HeatRiskCard riskData={cityData.risk} />
-              <TemperatureCard tempData={cityData.temperature} tempUnit={tempUnit} />
-              <PersistenceCard persistenceData={cityData.persistence} />
-              <ExceedanceCard exceedanceData={cityData.exceedance} />
-            </div>
+            {/* Dedicated Selected Location Risk Dashboard */}
+            <SelectedLocationDashboard
+              locationData={selectedLocation || {
+                id: cityData.location.id,
+                name: cityData.location.name,
+                ambient_c: cityData.temperature.ambient_c,
+                surface_c: cityData.temperature.surface_c,
+                risk_score: cityData.risk.risk_score,
+                risk_level: cityData.risk.risk_level,
+                persistence_hours: cityData.persistence.continuous_hours,
+                exceedance_hours: cityData.exceedance.cumulative_hours,
+                primary_risk_factors: cityData.risk.risk_factors
+              }}
+              riskData={cityData.risk}
+              tempData={cityData.temperature}
+              persistenceData={cityData.persistence}
+              exceedanceData={cityData.exceedance}
+              tempUnit={tempUnit}
+            />
 
             {/* 2. Interactive Heat Map (Connected to GET /api/heatmap) */}
             <InteractiveHeatMap
@@ -142,6 +155,14 @@ export default function App() {
               onSelectLocation={handleSelectLocation}
               tempUnit={tempUnit}
             />
+
+            {/* Top Row 4-Cards Grid: Heat Risk, Temperature, Persistence, Exceedance */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <HeatRiskCard riskData={cityData.risk} />
+              <TemperatureCard tempData={cityData.temperature} tempUnit={tempUnit} />
+              <PersistenceCard persistenceData={cityData.persistence} />
+              <ExceedanceCard exceedanceData={cityData.exceedance} />
+            </div>
 
             {/* 7. Diurnal Heat-Risk Timeline */}
             <HeatRiskTimeline
