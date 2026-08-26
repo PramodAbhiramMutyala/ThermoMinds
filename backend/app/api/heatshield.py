@@ -309,3 +309,34 @@ async def get_location_summary(
         forecast_obs=forecast_obs,
         peak_obs=peak_obs
     )
+
+# --- 10. GET /api/recommendations ---
+from services.recommendation_service import recommendation_service, PersonaRecommendationsResponse
+
+@router.get("/recommendations", response_model=PersonaRecommendationsResponse, summary="Persona-Specific Action Recommendations")
+async def get_persona_recommendations(
+    persona: str = Query("citizen", description="User persona: 'citizen' | 'worker' | 'authority'"),
+    city: str = Query("Phoenix", description="Target city"),
+    risk_score: int = Query(85, ge=0, le=100, description="HeatShield operational risk score"),
+    risk_level: str = Query("Extreme", description="Risk level category"),
+    ambient_temp_c: float = Query(44.8, description="Current ambient air temperature in °C"),
+    surface_temp_c: Optional[float] = Query(None, description="Radiant surface temperature in °C"),
+    persistence_hours: Optional[float] = Query(None, description="Continuous persistence duration in hours"),
+    exceedance_hours: Optional[float] = Query(None, description="Cumulative exceedance duration in hours"),
+    location_name: Optional[str] = Query(None, description="Location name or description")
+):
+    """
+    Generates structured, deterministic operational recommendations for the specified persona
+    (Citizen, Outdoor Worker, City Authority). Never random.
+    """
+    loc_title = location_name or f"{city} Thermal Sector"
+    return recommendation_service.generate_recommendations(
+        persona=persona,
+        risk_score=risk_score,
+        risk_level=risk_level,
+        ambient_temp_c=ambient_temp_c,
+        surface_temp_c=surface_temp_c,
+        persistence_hours=persistence_hours,
+        exceedance_hours=exceedance_hours,
+        location_name=loc_title
+    )

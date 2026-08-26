@@ -10,6 +10,7 @@ import TopHotspotsTable from './components/TopHotspotsTable';
 import InteractiveHeatMap from './components/InteractiveHeatMap';
 import AiAssistantPanel from './components/AiAssistantPanel';
 import SelectedLocationDashboard from './components/SelectedLocationDashboard';
+import PersonaRecommendationView from './components/PersonaRecommendationView';
 import { CITIES, MOCK_DASHBOARD_DATA } from './data/mockData';
 import { fetchHeatmapGeoJSON, fetchHotspots, fetchLocationSummary } from './services/api';
 
@@ -163,6 +164,13 @@ export default function App() {
               <PersistenceCard persistenceData={cityData.persistence} />
               <ExceedanceCard exceedanceData={cityData.exceedance} />
             </div>
+
+            {/* Targeted Persona Action Priorities */}
+            <PersonaRecommendationView
+              selectedLocation={selectedLocation}
+              cityData={cityData}
+              selectedCity={selectedCity}
+            />
 
             {/* 7. Diurnal Heat-Risk Timeline */}
             <HeatRiskTimeline

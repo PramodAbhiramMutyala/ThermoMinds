@@ -49,3 +49,15 @@ export async function fetchOperationalRisk(params = {}) {
     return null;
   }
 }
+
+export async function fetchPersonaRecommendations(params = {}) {
+  try {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_BASE_URL}/api/recommendations?${query}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn(`[HeatShield API] Recommendation query failed (${err.message}). Using fallback.`);
+    return null;
+  }
+}
