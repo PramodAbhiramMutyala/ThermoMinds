@@ -1,179 +1,164 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Navbar from './components/Navbar';
-import HeatShieldScoreCard from './components/HeatShieldScoreCard';
-import TimeSlider from './components/TimeSlider';
-import HeatMap from './components/HeatMap';
-import CitizenView from './components/CitizenView';
-import WorkerView from './components/WorkerView';
-import AuthorityView from './components/AuthorityView';
-import CorrelationView from './components/CorrelationView';
-import AiCopilot from './components/AiCopilot';
-import {
-  fetchHyperlocalData,
-  fetchCitySummary,
-  fetchRankedHotspots,
-  fetchCoolingCenters
-} from './services/api';
+import LocationSelector from './components/LocationSelector';
+import HeatRiskCard from './components/HeatRiskCard';
+import TemperatureCard from './components/TemperatureCard';
+import PersistenceCard from './components/PersistenceCard';
+import ExceedanceCard from './components/ExceedanceCard';
+import HeatRiskTimeline from './components/HeatRiskTimeline';
+import TopHotspotsTable from './components/TopHotspotsTable';
+import InteractiveHeatMap from './components/InteractiveHeatMap';
+import AiAssistantPanel from './components/AiAssistantPanel';
+import { CITIES, MOCK_DASHBOARD_DATA } from './data/mockData';
 
 export default function App() {
-  const [selectedCity, setSelectedCity] = useState('Phoenix');
-  const [activePersona, setActivePersona] = useState('citizen');
-  const [currentHour, setCurrentHour] = useState(14);
-  
-  const [citySummary, setCitySummary] = useState(null);
-  const [zones, setZones] = useState([]);
-  const [hotspots, setHotspots] = useState([]);
-  const [coolingCenters, setCoolingCenters] = useState([]);
-  const [activeZone, setActiveZone] = useState(null);
-  const [activeRoute, setActiveRoute] = useState(null);
-  const [copilotOpen, setCopilotOpen] = useState(false);
-  const [dataSource, setDataSource] = useState('DEMO - HeatShield Simulation');
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('live'); // 'live' | 'hotspots' | 'copilot'
+  const [selectedCityId, setSelectedCityId] = useState('phoenix');
+  const [tempUnit, setTempUnit] = useState('C');
+  const [selectedHotspot, setSelectedHotspot] = useState(null);
 
-  // Load city and temperature data
-  useEffect(() => {
-    loadCityData();
-  }, [selectedCity, currentHour]);
+  const selectedCity = CITIES.find((c) => c.id === selectedCityId) || CITIES[0];
+  const cityData = MOCK_DASHBOARD_DATA[selectedCityId] || MOCK_DASHBOARD_DATA.phoenix;
 
-  const loadCityData = async () => {
-    try {
-      setLoading(true);
-      const [tempData, summaryData, rankedData, sheltersData] = await Promise.all([
-        fetchHyperlocalData(selectedCity, currentHour),
-        fetchCitySummary(selectedCity),
-        fetchRankedHotspots(selectedCity, currentHour),
-        fetchCoolingCenters(selectedCity)
-      ]);
-
-      setZones(tempData.zones || []);
-      setCitySummary(summaryData);
-      setHotspots(rankedData.hotspots || []);
-      setCoolingCenters(sheltersData.cooling_centers || []);
-      setDataSource(tempData.data_source || 'DEMO - HeatShield Simulation');
-
-      if (!activeZone && tempData.zones?.length > 0) {
-        setActiveZone(tempData.zones[0]);
-      } else if (activeZone && tempData.zones) {
-        // Refresh active zone with updated diurnal temps
-        const match = tempData.zones.find((z) => z.id === activeZone.id);
-        if (match) setActiveZone(match);
-      }
-    } catch (err) {
-      console.error('Error loading city data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCityChange = (newCity) => {
-    setSelectedCity(newCity);
-    setActiveZone(null);
-    setActiveRoute(null);
+  const handleSelectHotspot = (hotspot) => {
+    setSelectedHotspot(hotspot);
   };
 
   const handleSelectZone = (zone) => {
-    setActiveZone(zone);
-  };
-
-  const handleShowRouteOnMap = (routeComparison) => {
-    setActiveRoute(routeComparison);
+    console.log('Selected thermal zone:', zone);
   };
 
   return (
-    <div className="min-h-screen bg-dark-900 text-slate-100 flex flex-col font-sans selection:bg-amber-500/30 selection:text-amber-200">
-      {/* 1. Global Navigation Bar */}
+    <div className="min-h-screen bg-[#07090e] text-slate-100 font-sans selection:bg-orange-500/30 selection:text-orange-200">
+      
+      {/* Top Navigation */}
       <Navbar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
         selectedCity={selectedCity}
-        onCityChange={handleCityChange}
-        activePersona={activePersona}
-        onPersonaChange={setActivePersona}
-        copilotOpen={copilotOpen}
-        onToggleCopilot={() => setCopilotOpen(!copilotOpen)}
-        dataSource={dataSource}
       />
 
-      {/* 2. Main Content Dashboard Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
-        {/* Unified HeatShield Score Card Strip */}
-        <HeatShieldScoreCard
-          citySummary={citySummary}
-          activeZone={activeZone}
+      {/* Main Content Area */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        
+        {/* 1. Location Selector (Always Available) */}
+        <LocationSelector
+          selectedCityId={selectedCityId}
+          onSelectCity={(id) => {
+            setSelectedCityId(id);
+            setSelectedHotspot(null);
+          }}
+          tempUnit={tempUnit}
+          setTempUnit={setTempUnit}
         />
 
-        {/* 24-Hour Diurnal Scrubber Bar */}
-        <TimeSlider
-          currentHour={currentHour}
-          onHourChange={setCurrentHour}
-        />
+        {/* Tab 1: Live Heat Intelligence (Main Dashboard) */}
+        {activeTab === 'live' && (
+          <div className="space-y-6">
+            
+            {/* Top Row 4-Cards Grid: Heat Risk, Temperature, Persistence, Exceedance */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <HeatRiskCard riskData={cityData.risk} />
+              <TemperatureCard tempData={cityData.temperature} tempUnit={tempUnit} />
+              <PersistenceCard persistenceData={cityData.persistence} />
+              <ExceedanceCard exceedanceData={cityData.exceedance} />
+            </div>
 
-        {/* Primary Interactive Map Area */}
-        <div className="h-[460px] w-full rounded-2xl overflow-hidden shadow-2xl">
-          <HeatMap
-            citySummary={citySummary}
-            zones={zones}
-            activeZone={activeZone}
-            onSelectZone={handleSelectZone}
-            coolingCenters={coolingCenters}
-            activeRoute={activeRoute}
-            dataSource={dataSource}
-          />
-        </div>
-
-        {/* Persona Specific Specialized Views */}
-        <div className="pt-2">
-          {activePersona === 'citizen' && (
-            <CitizenView
+            {/* 2. Interactive Heat Map */}
+            <InteractiveHeatMap
               city={selectedCity}
-              baseScore={activeZone?.heatshield_score || citySummary?.heatshield_score}
-              onShowRouteOnMap={handleShowRouteOnMap}
-            />
-          )}
-
-          {activePersona === 'worker' && (
-            <WorkerView
-              city={selectedCity}
-              activeZone={activeZone}
-            />
-          )}
-
-          {activePersona === 'authority' && (
-            <AuthorityView
-              city={selectedCity}
-              hotspots={hotspots}
+              mapZones={cityData.map_zones}
+              selectedHotspot={selectedHotspot}
               onSelectZone={handleSelectZone}
-              selectedZone={activeZone}
+              tempUnit={tempUnit}
             />
-          )}
 
-          {activePersona === 'correlation' && (
-            <CorrelationView
-              city={selectedCity}
+            {/* 7. Diurnal Heat-Risk Timeline */}
+            <HeatRiskTimeline
+              timelineData={cityData.timeline}
+              tempUnit={tempUnit}
             />
-          )}
-        </div>
+
+            {/* Bottom Row: Top Hotspots & AI Assistant Panel */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* 8. Top Hotspots */}
+              <TopHotspotsTable
+                hotspots={cityData.hotspots}
+                onSelectHotspot={handleSelectHotspot}
+                tempUnit={tempUnit}
+              />
+
+              {/* 9. AI Assistant Panel */}
+              <AiAssistantPanel
+                selectedCity={selectedCity}
+              />
+            </div>
+
+          </div>
+        )}
+
+        {/* Tab 2: Hotspots Deep-Dive */}
+        {activeTab === 'hotspots' && (
+          <div className="space-y-6">
+            <div className="glass-panel p-6 rounded-2xl border border-slate-800 bg-slate-900/60 shadow-xl mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-white font-sans">
+                    Autonomous Hotspot Intelligence & Vulnerability Registry
+                  </h2>
+                  <p className="text-xs text-slate-400 font-mono">
+                    Prioritizing immediate municipal & workplace mitigation interventions
+                  </p>
+                </div>
+                <span className="px-3 py-1 text-xs font-bold font-mono rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                  {cityData.hotspots.length} Active Hotspots
+                </span>
+              </div>
+
+              <InteractiveHeatMap
+                city={selectedCity}
+                mapZones={cityData.map_zones}
+                selectedHotspot={selectedHotspot}
+                onSelectZone={handleSelectZone}
+                tempUnit={tempUnit}
+              />
+            </div>
+
+            <TopHotspotsTable
+              hotspots={cityData.hotspots}
+              onSelectHotspot={handleSelectHotspot}
+              tempUnit={tempUnit}
+            />
+          </div>
+        )}
+
+        {/* Tab 3: AI Copilot & Decision Support */}
+        {activeTab === 'copilot' && (
+          <div className="max-w-4xl mx-auto space-y-6">
+            <div className="glass-panel p-6 rounded-2xl border border-slate-800 bg-slate-900/60 shadow-xl">
+              <h2 className="text-xl font-bold text-white mb-2">
+                Agentic Heat Decision Support System
+              </h2>
+              <p className="text-xs text-slate-400 font-mono mb-4">
+                Empowering Citizens, Occupational Safety Officers, and Municipal Planners with deterministic tool execution
+              </p>
+              <AiAssistantPanel selectedCity={selectedCity} />
+            </div>
+          </div>
+        )}
+
       </main>
 
-      {/* 3. Floating Agentic AI Copilot Drawer */}
-      <AiCopilot
-        isOpen={copilotOpen}
-        onClose={() => setCopilotOpen(false)}
-        city={selectedCity}
-        activePersona={activePersona}
-        activeZone={activeZone}
-        onTriggerAction={(action) => console.log('Copilot action:', action)}
-      />
-
-      {/* 4. Footer with Hackathon & Provenance Notes */}
-      <footer className="border-t border-slate-800/80 bg-dark-850 py-4 mt-8">
-        <div className="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400 space-y-1">
-          <p className="font-semibold text-slate-300">
-            HeatShield AI • Built for FortyGuard Global AI Hackathon 2026
-          </p>
-          <p className="text-[11px] text-slate-500">
-            Primary Track: <span className="text-amber-400 font-medium">Agentic AI</span> | Secondary Track: <span className="text-cyan-400 font-medium">Data Analysis & Correlation</span>
+      {/* Footer */}
+      <footer className="border-t border-slate-800/80 bg-slate-950 py-8 text-center text-xs text-slate-500 font-mono">
+        <div className="max-w-7xl mx-auto px-4 space-y-2">
+          <p>HeatShield AI — Hyperlocal Heat Risk & Action Assistant</p>
+          <p className="text-slate-600">
+            Powered by FortyGuard Temperature Intelligence | FortyGuard Global AI Hackathon 2026
           </p>
         </div>
       </footer>
+
     </div>
   );
 }
