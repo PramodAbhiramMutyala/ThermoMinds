@@ -9,6 +9,7 @@ from app.api.mitigation import router as mitigation_router
 from app.api.correlation import router as correlation_router
 from app.api.agent import router as agent_router
 from app.api.fortyguard import router as fortyguard_router
+from app.api.heatshield import router as heatshield_router
 from app.services.fortyguard_client import fortyguard_client
 
 app = FastAPI(
@@ -26,7 +27,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount API Routers
+# Mount Clean Unified API Routers under /api
+app.include_router(heatshield_router, prefix="/api")
+
+# Legacy / v1 Routers
 app.include_router(temp_router, prefix=settings.API_V1_STR)
 app.include_router(hotspots_router, prefix=settings.API_V1_STR)
 app.include_router(risk_router, prefix=settings.API_V1_STR)
@@ -35,7 +39,6 @@ app.include_router(mitigation_router, prefix=settings.API_V1_STR)
 app.include_router(correlation_router, prefix=settings.API_V1_STR)
 app.include_router(agent_router, prefix=settings.API_V1_STR)
 app.include_router(fortyguard_router, prefix=settings.API_V1_STR)
-app.include_router(hotspots_router, prefix="/api")
 
 @app.get("/")
 async def root():
