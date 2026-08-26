@@ -114,8 +114,15 @@ class FortyGuardClient:
         """
         if self.mock_mode:
             logger.info("FortyGuard Mock Mode: Generating mock activity submission.")
+            city_tag = "phx"
+            if payload.polygon_aoi.coordinates and len(payload.polygon_aoi.coordinates[0]) > 0:
+                lon = payload.polygon_aoi.coordinates[0][0][0]
+                if lon > 30.0:
+                    city_tag = "dxb"
+                elif -5.0 < lon < 5.0:
+                    city_tag = "ldn"
             return ActivitySubmissionResponse(
-                activity_id=f"act_mock_{int(datetime.now().timestamp())}_{payload.analytic_type}",
+                activity_id=f"act_mock_{city_tag}_{int(datetime.now().timestamp())}_{payload.analytic_type}",
                 status="Processing",
                 message="Mock activity successfully initiated.",
                 data_source="DEMO - HeatShield Simulation"
@@ -470,56 +477,170 @@ class FortyGuardClient:
         elif "exceedance" in activity_id:
             analytic_type = "exceedance"
 
-        features = [
-            {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [[
-                        [-112.0760, 33.4421],
-                        [-112.0735, 33.4421],
-                        [-112.0735, 33.4445],
-                        [-112.0760, 33.4445],
-                        [-112.0760, 33.4421]
-                    ]]
+        if "dxb" in activity_id or "dubai" in activity_id:
+            features = [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[55.2280, 25.1280], [55.2400, 25.1280], [55.2400, 25.1360], [55.2280, 25.1360], [55.2280, 25.1280]]]
+                    },
+                    "properties": {
+                        "tile_id": "tile_dxb_01",
+                        "name": "Al Quoz Industrial Concrete Basin",
+                        "tcm": 46.2,
+                        "ambient_temp_c": 46.2,
+                        "surface_temp_c": 64.5,
+                        "persistence_hours": 10.0,
+                        "exceedance_hours": 8.0,
+                        "apparent_temp_c": 51.0,
+                        "risk_score": 95,
+                        "risk_level": "Extreme",
+                        "canopy_cover_pct": 2.0,
+                        "analytic_type": analytic_type,
+                        "granularity_m": 80
+                    }
                 },
-                "properties": {
-                    "tile_id": "tile_phx_01",
-                    "tcm": 44.8,
-                    "surface_temp_c": 61.2,
-                    "ambient_temp_c": 44.8,
-                    "persistence_hours": 9.5,
-                    "exceedance_hours": 6.5,
-                    "canopy_cover_pct": 4.5,
-                    "analytic_type": analytic_type,
-                    "granularity_m": 80
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[55.3040, 25.2650], [55.3140, 25.2650], [55.3140, 25.2730], [55.3040, 25.2730], [55.3040, 25.2650]]]
+                    },
+                    "properties": {
+                        "tile_id": "tile_dxb_02",
+                        "name": "Deira Commercial Souk Corridor",
+                        "tcm": 44.8,
+                        "ambient_temp_c": 44.8,
+                        "surface_temp_c": 61.0,
+                        "persistence_hours": 8.5,
+                        "exceedance_hours": 6.0,
+                        "apparent_temp_c": 48.5,
+                        "risk_score": 89,
+                        "risk_level": "Extreme",
+                        "canopy_cover_pct": 3.5,
+                        "analytic_type": analytic_type,
+                        "granularity_m": 80
+                    }
                 }
-            },
-            {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [[
-                        [-112.0735, 33.4490],
-                        [-112.0700, 33.4490],
-                        [-112.0700, 33.4520],
-                        [-112.0735, 33.4520],
-                        [-112.0735, 33.4490]
-                    ]]
+            ]
+        elif "ldn" in activity_id or "london" in activity_id:
+            features = [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[-0.0940, 51.5100], [-0.0840, 51.5100], [-0.0840, 51.5160], [-0.0940, 51.5160], [-0.0940, 51.5100]]]
+                    },
+                    "properties": {
+                        "tile_id": "tile_ldn_01",
+                        "name": "Bank Junction Masonry Heat Island",
+                        "tcm": 36.2,
+                        "ambient_temp_c": 36.2,
+                        "surface_temp_c": 46.5,
+                        "persistence_hours": 4.5,
+                        "exceedance_hours": 1.5,
+                        "apparent_temp_c": 37.8,
+                        "risk_score": 68,
+                        "risk_level": "High",
+                        "canopy_cover_pct": 11.0,
+                        "analytic_type": analytic_type,
+                        "granularity_m": 80
+                    }
+                }
+            ]
+        else:
+            # Phoenix default
+            features = [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[-112.0800, 33.4400], [-112.0720, 33.4400], [-112.0720, 33.4460], [-112.0800, 33.4460], [-112.0800, 33.4400]]]
+                    },
+                    "properties": {
+                        "tile_id": "tile_phx_01",
+                        "name": "Warehouse District Rail Yards",
+                        "tcm": 45.2,
+                        "ambient_temp_c": 45.2,
+                        "surface_temp_c": 62.8,
+                        "persistence_hours": 9.5,
+                        "exceedance_hours": 6.5,
+                        "apparent_temp_c": 48.0,
+                        "risk_score": 92,
+                        "risk_level": "Extreme",
+                        "canopy_cover_pct": 4.5,
+                        "analytic_type": analytic_type,
+                        "granularity_m": 80
+                    }
                 },
-                "properties": {
-                    "tile_id": "tile_phx_02",
-                    "tcm": 43.2,
-                    "surface_temp_c": 57.5,
-                    "ambient_temp_c": 43.2,
-                    "persistence_hours": 8.0,
-                    "exceedance_hours": 5.0,
-                    "canopy_cover_pct": 12.0,
-                    "analytic_type": analytic_type,
-                    "granularity_m": 80
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[-112.0750, 33.4340], [-112.0670, 33.4340], [-112.0670, 33.4400], [-112.0750, 33.4400], [-112.0750, 33.4340]]]
+                    },
+                    "properties": {
+                        "tile_id": "tile_phx_02",
+                        "name": "Transit Hub & Bus Plaza",
+                        "tcm": 44.6,
+                        "ambient_temp_c": 44.6,
+                        "surface_temp_c": 60.5,
+                        "persistence_hours": 8.0,
+                        "exceedance_hours": 5.0,
+                        "apparent_temp_c": 47.0,
+                        "risk_score": 86,
+                        "risk_level": "Extreme",
+                        "canopy_cover_pct": 8.0,
+                        "analytic_type": analytic_type,
+                        "granularity_m": 80
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[-112.0780, 33.4460], [-112.0700, 33.4460], [-112.0700, 33.4520], [-112.0780, 33.4520], [-112.0780, 33.4460]]]
+                    },
+                    "properties": {
+                        "tile_id": "tile_phx_03",
+                        "name": "Downtown Financial Plaza",
+                        "tcm": 42.8,
+                        "ambient_temp_c": 42.8,
+                        "surface_temp_c": 56.4,
+                        "persistence_hours": 6.5,
+                        "exceedance_hours": 3.5,
+                        "apparent_temp_c": 44.5,
+                        "risk_score": 75,
+                        "risk_level": "Very High",
+                        "canopy_cover_pct": 14.0,
+                        "analytic_type": analytic_type,
+                        "granularity_m": 80
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[-112.0740, 33.4540], [-112.0660, 33.4540], [-112.0660, 33.4600], [-112.0740, 33.4600], [-112.0740, 33.4540]]]
+                    },
+                    "properties": {
+                        "tile_id": "tile_phx_04",
+                        "name": "Roosevelt Row Shaded Corridor",
+                        "tcm": 40.5,
+                        "ambient_temp_c": 40.5,
+                        "surface_temp_c": 51.2,
+                        "persistence_hours": 4.5,
+                        "exceedance_hours": 2.0,
+                        "apparent_temp_c": 42.0,
+                        "risk_score": 64,
+                        "risk_level": "High",
+                        "canopy_cover_pct": 22.0,
+                        "analytic_type": analytic_type,
+                        "granularity_m": 80
+                    }
                 }
-            }
-        ]
+            ]
 
         return ActivityStatusResponse(
             activity_id=activity_id,

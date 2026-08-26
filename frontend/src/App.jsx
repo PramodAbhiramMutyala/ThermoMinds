@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import LocationSelector from './components/LocationSelector';
 import HeatRiskCard from './components/HeatRiskCard';
@@ -10,22 +10,91 @@ import TopHotspotsTable from './components/TopHotspotsTable';
 import InteractiveHeatMap from './components/InteractiveHeatMap';
 import AiAssistantPanel from './components/AiAssistantPanel';
 import { CITIES, MOCK_DASHBOARD_DATA } from './data/mockData';
+import { fetchHeatmapGeoJSON, fetchHotspots, fetchLocationSummary } from './services/api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('live'); // 'live' | 'hotspots' | 'copilot'
   const [selectedCityId, setSelectedCityId] = useState('phoenix');
   const [tempUnit, setTempUnit] = useState('C');
-  const [selectedHotspot, setSelectedHotspot] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [geoJsonData, setGeoJsonData] = useState(null);
+  const [apiHotspots, setApiHotspots] = useState(null);
 
   const selectedCity = CITIES.find((c) => c.id === selectedCityId) || CITIES[0];
   const cityData = MOCK_DASHBOARD_DATA[selectedCityId] || MOCK_DASHBOARD_DATA.phoenix;
 
+  // Load live GeoJSON and hotspots from backend whenever selected city changes
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadData() {
+      try {
+        const [geoRes, spotsRes] = await Promise.all([
+          fetchHeatmapGeoJSON(selectedCity.name),
+          fetchHotspots(selectedCity.name, 10)
+        ]);
+
+        if (isMounted) {
+          if (geoRes && geoRes.features) {
+            setGeoJsonData(geoRes);
+          } else {
+            // Local GeoJSON fallback formatted to match FortyGuard specification
+            setGeoJsonData({
+              type: 'FeatureCollection',
+              features: cityData.map_zones.map((z) => ({
+                type: 'Feature',
+                geometry: {
+                  type: 'Polygon',
+                  coordinates: [z.coords.map((pt) => [pt[1], pt[0]])] // [lng, lat]
+                },
+                properties: {
+                  tile_id: z.id,
+                  name: z.name,
+                  ambient_temp_c: z.temp,
+                  surface_temp_c: z.surface,
+                  tcm: z.temp,
+                  risk_score: z.risk_score,
+                  risk_level: z.level,
+                  persistence_hours: cityData.persistence.continuous_hours,
+                  exceedance_hours: cityData.exceedance.cumulative_hours
+                }
+              }))
+            });
+          }
+
+          if (spotsRes && spotsRes.length > 0) {
+            setApiHotspots(spotsRes);
+          } else {
+            setApiHotspots(cityData.hotspots);
+          }
+        }
+      } catch (err) {
+        console.warn('Backend load error:', err);
+      }
+    }
+
+    loadData();
+    return () => { isMounted = false; };
+  }, [selectedCityId, selectedCity.name]);
+
   const handleSelectHotspot = (hotspot) => {
-    setSelectedHotspot(hotspot);
+    setSelectedLocation({
+      id: hotspot.hotspot_id || hotspot.id,
+      name: hotspot.name,
+      centroid: hotspot.centroid,
+      ambient_c: hotspot.temperature?.ambient_c || hotspot.ambient_c,
+      surface_c: hotspot.temperature?.surface_c || hotspot.surface_c,
+      persistence_hours: hotspot.persistence_hours,
+      exceedance_hours: hotspot.exceedance_hours,
+      risk_score: hotspot.risk_score,
+      risk_level: hotspot.risk_level,
+      primary_risk_factors: hotspot.primary_risk_factors,
+      recommended_action: hotspot.recommended_action
+    });
   };
 
-  const handleSelectZone = (zone) => {
-    console.log('Selected thermal zone:', zone);
+  const handleSelectLocation = (loc) => {
+    setSelectedLocation(loc);
   };
 
   return (
@@ -41,12 +110,12 @@ export default function App() {
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         
-        {/* 1. Location Selector (Always Available) */}
+        {/* 1. Location Selector */}
         <LocationSelector
           selectedCityId={selectedCityId}
           onSelectCity={(id) => {
             setSelectedCityId(id);
-            setSelectedHotspot(null);
+            setSelectedLocation(null);
           }}
           tempUnit={tempUnit}
           setTempUnit={setTempUnit}
@@ -64,12 +133,13 @@ export default function App() {
               <ExceedanceCard exceedanceData={cityData.exceedance} />
             </div>
 
-            {/* 2. Interactive Heat Map */}
+            {/* 2. Interactive Heat Map (Connected to GET /api/heatmap) */}
             <InteractiveHeatMap
               city={selectedCity}
-              mapZones={cityData.map_zones}
-              selectedHotspot={selectedHotspot}
-              onSelectZone={handleSelectZone}
+              geoJsonData={geoJsonData}
+              hotspots={apiHotspots || cityData.hotspots}
+              selectedLocation={selectedLocation}
+              onSelectLocation={handleSelectLocation}
               tempUnit={tempUnit}
             />
 
@@ -83,7 +153,7 @@ export default function App() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* 8. Top Hotspots */}
               <TopHotspotsTable
-                hotspots={cityData.hotspots}
+                hotspots={apiHotspots || cityData.hotspots}
                 onSelectHotspot={handleSelectHotspot}
                 tempUnit={tempUnit}
               />
@@ -111,21 +181,22 @@ export default function App() {
                   </p>
                 </div>
                 <span className="px-3 py-1 text-xs font-bold font-mono rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                  {cityData.hotspots.length} Active Hotspots
+                  {(apiHotspots || cityData.hotspots).length} Active Hotspots
                 </span>
               </div>
 
               <InteractiveHeatMap
                 city={selectedCity}
-                mapZones={cityData.map_zones}
-                selectedHotspot={selectedHotspot}
-                onSelectZone={handleSelectZone}
+                geoJsonData={geoJsonData}
+                hotspots={apiHotspots || cityData.hotspots}
+                selectedLocation={selectedLocation}
+                onSelectLocation={handleSelectLocation}
                 tempUnit={tempUnit}
               />
             </div>
 
             <TopHotspotsTable
-              hotspots={cityData.hotspots}
+              hotspots={apiHotspots || cityData.hotspots}
               onSelectHotspot={handleSelectHotspot}
               tempUnit={tempUnit}
             />
