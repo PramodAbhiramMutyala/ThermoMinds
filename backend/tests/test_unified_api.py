@@ -110,9 +110,11 @@ async def test_api_location_summary_endpoint():
         assert "risk_factors" in data
         assert "source" in data
 
-    @pytest.mark.asyncio
-    async def test_get_recommendations_endpoint(self, async_client: AsyncClient):
-        response = await async_client.get(
+@pytest.mark.anyio
+async def test_get_recommendations_endpoint():
+    """10. Test GET /api/recommendations"""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get(
             "/api/recommendations?persona=worker&city=Phoenix&risk_score=88&risk_level=Extreme&ambient_temp_c=44.8&surface_temp_c=61.2&persistence_hours=9.5&exceedance_hours=6.5"
         )
         assert response.status_code == 200
