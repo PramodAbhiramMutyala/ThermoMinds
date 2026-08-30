@@ -1,6 +1,14 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
 from app.main import app
+from services.fortyguard_client import fortyguard_client
+
+@pytest.fixture(autouse=True)
+def setup_mock_fortyguard():
+    prev = fortyguard_client.mock_mode
+    fortyguard_client.mock_mode = True
+    yield
+    fortyguard_client.mock_mode = prev
 
 @pytest.mark.anyio
 async def test_api_health_endpoint():

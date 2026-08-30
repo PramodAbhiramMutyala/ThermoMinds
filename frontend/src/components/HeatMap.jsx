@@ -71,11 +71,11 @@ export default function HeatMap({
       >
         <ChangeMapView center={center} zoom={zoom} />
 
-        {/* Dark CARTO Basemap Tiles */}
+        {/* Dark Basemap Tiles */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a> | Data: FortyGuard'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          maxZoom={19}
+          attribution='&copy; <a href="https://www.esri.com/">Esri</a> | Data: FortyGuard'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={16}
         />
 
         {/* Microclimate Zones & Hotspot Circles */}
