@@ -227,9 +227,16 @@ export default function InteractiveHeatMap({
             
             {/* Dark Basemap */}
             <TileLayer
+<<<<<<< HEAD
               attribution='&copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, NAVTEQ'
               url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
               maxZoom={16}
+=======
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              subdomains="abcd"
+              maxZoom={20}
+>>>>>>> 657cfa4e12c27351126d901567920e698e26623c
             />
 
             {/* Render GeoJSON Polygons */}
