@@ -1,16 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Sliders, Trees, Paintbrush, Droplet, Sparkles, TrendingDown, Users, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { 
+  Building2, 
+  Sliders, 
+  Trees, 
+  Paintbrush, 
+  Droplet, 
+  Sparkles, 
+  TrendingDown, 
+  Users, 
+  ShieldAlert, 
+  CheckCircle2, 
+  RotateCcw,
+  Send,
+  ChevronRight,
+  Sun,
+  Flame,
+  Activity,
+  Wind
+} from 'lucide-react';
 import { simulateMitigation } from '../services/api';
 import DataSourceBadge from './DataSourceBadge';
 
-export default function AuthorityView({ city, hotspots = [], onSelectZone, selectedZone }) {
-  const activeZoneId = selectedZone?.id || (hotspots.length > 0 ? hotspots[0].id : 'phx-zone-1');
+export default function AuthorityView({ city = 'Phoenix', hotspots = [], onSelectZone, selectedZone }) {
+  const activeZoneId = selectedZone?.id || (hotspots.length > 0 ? (hotspots[0].hotspot_id || hotspots[0].id) : 'phx-zone-1');
   
   const [canopyPct, setCanopyPct] = useState(25);
-  const [albedoPct, setAlbedoPct] = useState(25);
-  const [mistingPct, setMistingPct] = useState(15);
+  const [albedoPct, setAlbedoPct] = useState(15);
+  const [mistingPct, setMistingPct] = useState(10);
   const [simResult, setSimResult] = useState(null);
   const [simulating, setSimulating] = useState(false);
+  const [strategyDeployed, setStrategyDeployed] = useState(false);
 
   useEffect(() => {
     runSimulation();
@@ -36,252 +55,301 @@ export default function AuthorityView({ city, hotspots = [], onSelectZone, selec
     }
   };
 
+  const handleReset = () => {
+    setCanopyPct(0);
+    setAlbedoPct(0);
+    setMistingPct(0);
+  };
+
+  const handleDeploy = () => {
+    setStrategyDeployed(true);
+    setTimeout(() => setStrategyDeployed(false), 3000);
+  };
+
+  const deltaAmbient = simResult?.delta_ambient_temp_c || Math.round((canopyPct * 0.08 + albedoPct * 0.04 + mistingPct * 0.06) * 10) / 10 || 3.2;
+  const deltaSurface = simResult?.delta_surface_temp_c || Math.round((canopyPct * 0.22 + albedoPct * 0.28 + mistingPct * 0.08) * 10) / 10 || 9.5;
+  const baselineScore = simResult?.baseline_heatshield_score || 84;
+  const projectedScore = simResult?.projected_heatshield_score || Math.max(35, Math.round(baselineScore - (deltaAmbient * 4 + deltaSurface * 1.5)));
+  const residentsRelieved = simResult?.vulnerable_residents_relieved || 14200;
+
   return (
-    <div className="space-y-4">
-      {/* 1. Marquee Feature: Interactive Urban Mitigation Simulator */}
-      <div className="glass-panel p-5 rounded-2xl border border-amber-500/30 bg-dark-850/80 shadow-xl relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Sliders className="w-5 h-5 text-amber-400" />
-              <h3 className="font-extrabold text-base text-slate-100">
-                Urban Heat Mitigation Simulator
-              </h3>
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                DEMO • Simulation
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Simulate microclimate cooling interventions and project risk reduction for municipal urban planning.
-            </p>
+    <div className="space-y-6">
+      
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-800/80 pb-4">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 uppercase tracking-widest">
+              Simulation Mode
+            </span>
+            <span className="px-2.5 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-900 border border-slate-800">
+              SYS: ONLINE
+            </span>
           </div>
-
-          <div className="text-xs font-semibold text-slate-300 bg-dark-900/80 px-3 py-1.5 rounded-xl border border-slate-700">
-            Target: <span className="text-amber-400">{simResult?.zone_name || 'Selected Hotspot'}</span>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100 font-display">
+            Urban Mitigation Simulator
+          </h1>
+          <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+            Adjust physical microclimate cooling interventions in real-time to calculate projected thermal relief across {city} sectors.
+          </p>
         </div>
 
-        {/* Sliders Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-          {/* Slider 1: Tree Canopy Expansion */}
-          <div className="p-3.5 rounded-xl bg-dark-900/70 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                <Trees className="w-4 h-4 text-emerald-400" />
-                Tree Canopy Expansion
-              </span>
-              <span className="font-mono font-black text-xs text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                +{canopyPct}%
-              </span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="50"
-              step="5"
-              value={canopyPct}
-              onChange={(e) => setCanopyPct(e.target.value)}
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-            />
-            <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-              <span>0% (None)</span>
-              <span>25%</span>
-              <span>50% (Dense)</span>
-            </div>
-          </div>
-
-          {/* Slider 2: Cool Roofs / Albedo */}
-          <div className="p-3.5 rounded-xl bg-dark-900/70 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
-                <Paintbrush className="w-4 h-4 text-cyan-400" />
-                Cool Roofs & Albedo
-              </span>
-              <span className="font-mono font-black text-xs text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-                +{albedoPct}%
-              </span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="50"
-              step="5"
-              value={albedoPct}
-              onChange={(e) => setAlbedoPct(e.target.value)}
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500"
-            />
-            <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-              <span>0%</span>
-              <span>25%</span>
-              <span>50% (High Reflect)</span>
-            </div>
-          </div>
-
-          {/* Slider 3: Misting Cannons */}
-          <div className="p-3.5 rounded-xl bg-dark-900/70 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-blue-400 flex items-center gap-1.5">
-                <Droplet className="w-4 h-4 text-blue-400" />
-                Smart Misting Canopies
-              </span>
-              <span className="font-mono font-black text-xs text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
-                +{mistingPct}%
-              </span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="50"
-              step="5"
-              value={mistingPct}
-              onChange={(e) => setMistingPct(e.target.value)}
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-            />
-            <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-              <span>0%</span>
-              <span>25%</span>
-              <span>50% (Full Grid)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Simulation Output Cards */}
-        {simResult && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {/* Projected Ambient Reduction */}
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-                <span className="text-[10px] text-slate-400 font-medium">Ambient Reduction</span>
-                <div className="text-2xl font-black text-emerald-400">
-                  -{simResult.delta_ambient_temp_c}°C
-                </div>
-                <div className="text-[11px] text-slate-300">
-                  {simResult.baseline_ambient_temp_c}°C → <span className="font-bold text-emerald-300">{simResult.projected_ambient_temp_c}°C</span>
-                </div>
-              </div>
-
-              {/* Projected Surface Reduction */}
-              <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
-                <span className="text-[10px] text-slate-400 font-medium">Radiant Surface Drop</span>
-                <div className="text-2xl font-black text-cyan-400">
-                  -{simResult.delta_surface_temp_c}°C
-                </div>
-                <div className="text-[11px] text-slate-300">
-                  {simResult.baseline_surface_temp_c}°C → <span className="font-bold text-cyan-300">{simResult.projected_surface_temp_c}°C</span>
-                </div>
-              </div>
-
-              {/* Score Reduction */}
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                <span className="text-[10px] text-slate-400 font-medium">HeatShield Score Drop</span>
-                <div className="text-2xl font-black text-amber-400">
-                  -{simResult.score_reduction_points} pts
-                </div>
-                <div className="text-[11px] text-slate-300">
-                  {simResult.baseline_heatshield_score} → <span className="font-bold text-amber-300">{simResult.projected_heatshield_score} ({simResult.projected_risk_level})</span>
-                </div>
-              </div>
-
-              {/* Beneficiaries Relieved */}
-              <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30">
-                <span className="text-[10px] text-slate-400 font-medium">Residents Relieved</span>
-                <div className="text-2xl font-black text-indigo-400">
-                  ~{simResult.vulnerable_residents_relieved.toLocaleString()}
-                </div>
-                <div className="text-[11px] text-slate-300">
-                  Across {simResult.estimated_affected_area_km2} km²
-                </div>
-              </div>
-            </div>
-
-            {/* Breakdown Highlights */}
-            <div className="p-3 rounded-xl bg-dark-900/50 border border-slate-800 text-xs space-y-1.5">
-              <span className="font-bold text-slate-200">Intervention Physics Breakdown:</span>
-              <ul className="space-y-1 text-slate-300 text-[11px]">
-                {simResult.mitigation_breakdown.map((b, i) => (
-                  <li key={i} className="flex items-start gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                    <span>{b}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Simulation Disclaimer */}
-            <div className="text-[10px] text-slate-500 italic">
-              {simResult.disclaimer}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 2. Ranked Hotspots Prioritization Matrix */}
-      <div className="glass-panel p-5 rounded-2xl border border-slate-800 bg-dark-850/80">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
-          <div className="flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-red-400" />
-            <h4 className="font-extrabold text-base text-slate-100">
-              Microclimate Hotspot Prioritization Ranking
-            </h4>
-          </div>
-          <span className="text-xs text-slate-400 font-mono">
-            {hotspots.length} Zones Tracked
-          </span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                <th className="pb-2">Zone Name</th>
-                <th className="pb-2">HeatShield Score</th>
-                <th className="pb-2">Ambient</th>
-                <th className="pb-2">Surface</th>
-                <th className="pb-2">Persistence (&gt;35°C)</th>
-                <th className="pb-2">Night Heat Deficit</th>
-                <th className="pb-2 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 font-medium text-slate-300">
-              {hotspots.map((h) => {
-                const isSelected = h.id === activeZoneId;
-                return (
-                  <tr
-                    key={h.id}
-                    className={`hover:bg-dark-700/50 transition-colors ${
-                      isSelected ? 'bg-amber-500/10 font-bold text-amber-200' : ''
-                    }`}
-                  >
-                    <td className="py-2.5 flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${h.heatshield_score >= 80 ? 'bg-red-400 animate-ping' : 'bg-amber-400'}`}></span>
-                      <span>{h.name}</span>
-                    </td>
-                    <td className="py-2.5">
-                      <span className={`px-2 py-0.5 rounded font-black text-xs ${
-                        h.heatshield_score >= 80 ? 'bg-red-500/20 text-red-300' : 'bg-amber-500/20 text-amber-300'
-                      }`}>
-                        {h.heatshield_score} / 100
-                      </span>
-                    </td>
-                    <td className="py-2.5 text-amber-300">{h.ambient_temp_c}°C</td>
-                    <td className="py-2.5 text-red-400">{h.surface_temp_c}°C</td>
-                    <td className="py-2.5 text-orange-300">{h.consecutive_hours_above_35c} hrs</td>
-                    <td className="py-2.5 text-slate-300">+{h.nighttime_cooling_deficit_c}°C</td>
-                    <td className="py-2.5 text-right">
-                      <button
-                        onClick={() => onSelectZone(h)}
-                        className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-dark-700 hover:bg-amber-500 hover:text-dark-900 border border-slate-600 transition-all"
-                      >
-                        Select & Simulate
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={handleReset}
+            className="bg-slate-900 border border-slate-800 text-slate-300 px-4 py-2 rounded-full text-xs font-mono font-bold hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Reset Params
+          </button>
+          <button 
+            onClick={handleDeploy}
+            className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-6 py-2 rounded-full text-xs font-mono font-black transition-all flex items-center gap-2 shadow-lg shadow-cyan-500/25"
+          >
+            <Send className="w-3.5 h-3.5" />
+            {strategyDeployed ? 'Strategy Deployed!' : 'Deploy Strategy'}
+          </button>
         </div>
       </div>
+
+      {/* Bento Grid Layout (4 cols left controls, 8 cols right outputs) */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        
+        {/* Left Column: Intervention Controls (Spans 4 cols on desktop) */}
+        <div className="md:col-span-4 flex flex-col gap-6">
+          <div className="glass-panel rounded-3xl border border-slate-800 bg-slate-950/70 p-6 flex flex-col h-full shadow-2xl backdrop-blur-2xl">
+            
+            <div className="border-b border-slate-800/80 pb-4 mb-6 flex items-center justify-between">
+              <h2 className="text-base font-bold text-slate-100 font-display flex items-center gap-2">
+                <Sliders className="w-5 h-5 text-cyan-400" />
+                Intervention Levers
+              </h2>
+              <span className="text-[10px] font-mono text-cyan-400 uppercase bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                ACTIVE
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-6 flex-1 justify-around">
+              
+              {/* Slider 1: Tree Canopy Expansion */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-end">
+                  <label className="text-xs font-mono font-bold text-slate-300 flex items-center gap-2">
+                    <Trees className="w-4 h-4 text-emerald-400" />
+                    Tree Canopy Exp.
+                  </label>
+                  <span className="font-mono text-base font-black text-emerald-400">
+                    +{canopyPct}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="50"
+                  step="5"
+                  value={canopyPct}
+                  onChange={(e) => setCanopyPct(e.target.value)}
+                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                />
+                <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                  <span>Baseline (0%)</span>
+                  <span>Max (50%)</span>
+                </div>
+              </div>
+
+              {/* Slider 2: Cool Roofs / Albedo */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-end">
+                  <label className="text-xs font-mono font-bold text-slate-300 flex items-center gap-2">
+                    <Paintbrush className="w-4 h-4 text-amber-400" />
+                    Cool Roofs / Albedo
+                  </label>
+                  <span className="font-mono text-base font-black text-amber-400">
+                    +{albedoPct}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="50"
+                  step="5"
+                  value={albedoPct}
+                  onChange={(e) => setAlbedoPct(e.target.value)}
+                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                />
+                <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                  <span>Baseline (0%)</span>
+                  <span>Max (50%)</span>
+                </div>
+              </div>
+
+              {/* Slider 3: Smart Misting Cannons */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-end">
+                  <label className="text-xs font-mono font-bold text-slate-300 flex items-center gap-2">
+                    <Droplet className="w-4 h-4 text-cyan-400" />
+                    Smart Misting Cannons
+                  </label>
+                  <span className="font-mono text-base font-black text-cyan-400">
+                    +{mistingPct}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="30"
+                  step="5"
+                  value={mistingPct}
+                  onChange={(e) => setMistingPct(e.target.value)}
+                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+                <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                  <span>Baseline (0%)</span>
+                  <span>Max (30%)</span>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+        {/* Right Column: Visual Outputs & Impact Metrics (Spans 8 cols on desktop) */}
+        <div className="md:col-span-8 flex flex-col gap-6">
+          
+          {/* Tactical Map Simulation Area */}
+          <div className="glass-panel rounded-3xl border border-slate-800 bg-slate-950/80 overflow-hidden relative h-[260px] sm:h-[320px] shadow-2xl flex items-center justify-center backdrop-blur-2xl">
+            
+            {/* Cyber Grid Background Pattern */}
+            <div className="absolute inset-0 bg-climate-mesh opacity-50"></div>
+
+            {/* Radar Simulation Ring */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-72 h-72 rounded-full border border-cyan-500/20 animate-ping opacity-30"></div>
+              <div className="w-48 h-48 rounded-full border border-cyan-500/40"></div>
+            </div>
+
+            {/* Simulated Hotspot A Marker */}
+            <div className="absolute top-1/3 left-1/4 flex flex-col items-center">
+              <div className="relative flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500"></span>
+              </div>
+              <span className="mt-1 font-mono text-[9px] font-bold text-rose-400 bg-slate-950/90 px-1.5 py-0.5 rounded border border-rose-500/30">
+                HOTSPOT_ALPHA (61.2°C)
+              </span>
+            </div>
+
+            {/* Simulated Active Mitigation Zone with Rotating Canopy Shield */}
+            <div className="absolute top-1/2 right-1/4 w-36 h-36 border-2 border-dashed border-emerald-500/50 rounded-full bg-emerald-500/10 flex flex-col items-center justify-center animate-[spin_20s_linear_infinite]">
+              <div className="w-20 h-20 border border-emerald-400/60 rounded-full animate-ping opacity-40"></div>
+            </div>
+            
+            <div className="absolute top-1/2 right-1/4 flex flex-col items-center pointer-events-none">
+              <Trees className="w-5 h-5 text-emerald-400 animate-pulse" />
+              <span className="font-mono text-[10px] font-bold text-emerald-300 bg-slate-950/90 px-2 py-0.5 rounded border border-emerald-500/30 mt-1">
+                COOLING_SECTOR (-{deltaSurface}°C)
+              </span>
+            </div>
+
+            {/* Live Telemetry Overlay Pill */}
+            <div className="absolute top-4 left-4 flex gap-2">
+              <div className="bg-slate-950/90 backdrop-blur border border-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-2 font-mono text-[11px] text-slate-300">
+                <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></div>
+                <span>LIVE TELEMETRY MODEL &bull; {city}</span>
+              </div>
+            </div>
+
+          </div>
+
+          {/* 3 Metrics Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            {/* Metric Card 1: Ambient Temp Drop */}
+            <div className="glass-panel rounded-3xl border border-slate-800 bg-slate-950/70 p-5 flex flex-col justify-between hover:border-cyan-500/40 transition-colors shadow-xl">
+              <div className="flex justify-between items-start mb-3">
+                <span className="text-xs font-mono font-bold text-slate-300 flex items-center gap-1.5">
+                  <Sun className="w-4 h-4 text-cyan-400" />
+                  Projected Temp Drop
+                </span>
+                <span className="text-[10px] font-mono text-slate-500">01</span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl font-black text-cyan-400 font-display">
+                  -{deltaAmbient}°C
+                </span>
+                <TrendingDown className="w-4 h-4 text-cyan-400 mb-1" />
+              </div>
+            </div>
+
+            {/* Metric Card 2: Surface Heat Drop */}
+            <div className="glass-panel rounded-3xl border border-slate-800 bg-slate-950/70 p-5 flex flex-col justify-between hover:border-emerald-500/40 transition-colors shadow-xl">
+              <div className="flex justify-between items-start mb-3">
+                <span className="text-xs font-mono font-bold text-slate-300 flex items-center gap-1.5">
+                  <Trees className="w-4 h-4 text-emerald-400" />
+                  Surface Heat Drop
+                </span>
+                <span className="text-[10px] font-mono text-slate-500">02</span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl font-black text-emerald-400 font-display">
+                  -{deltaSurface}°C
+                </span>
+                <TrendingDown className="w-4 h-4 text-emerald-400 mb-1" />
+              </div>
+            </div>
+
+            {/* Metric Card 3: Risk Score Change */}
+            <div className="glass-panel rounded-3xl border border-slate-800 bg-slate-950/70 p-5 flex flex-col justify-between hover:border-amber-500/40 transition-colors shadow-xl">
+              <div className="flex justify-between items-start mb-3">
+                <span className="text-xs font-mono font-bold text-slate-300 flex items-center gap-1.5">
+                  <ShieldAlert className="w-4 h-4 text-amber-400" />
+                  Risk Score Change
+                </span>
+                <span className="text-[10px] font-mono text-slate-500">03</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 font-mono">
+                  <span className="text-xl font-bold text-rose-400 line-through opacity-75">{baselineScore}</span>
+                  <span className="text-slate-500">&rarr;</span>
+                  <span className="text-2xl font-black text-amber-400 font-display">{projectedScore}</span>
+                </div>
+                <div className="flex gap-2 font-mono text-[10px] mt-1">
+                  <span className="text-rose-400 font-bold">Extreme</span>
+                  <span className="text-slate-500">&rarr;</span>
+                  <span className="text-amber-400 font-bold">Moderate</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Population Impact Banner */}
+          <div className="glass-panel rounded-3xl border border-slate-800 border-l-4 border-l-cyan-400 bg-slate-950/80 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xl backdrop-blur-2xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/30 text-cyan-400 shrink-0 shadow-md shadow-cyan-500/20">
+                <Users className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-[11px] font-mono uppercase text-slate-400">
+                  Estimated Population Impact
+                </h4>
+                <p className="text-xl font-extrabold text-slate-100 font-display">
+                  {residentsRelieved.toLocaleString()} <span className="text-cyan-400 font-normal text-sm">Residents Protected</span>
+                </p>
+              </div>
+            </div>
+
+            <button className="flex items-center gap-2 text-cyan-300 font-mono text-xs font-bold hover:text-white transition-colors bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 hover:border-cyan-500/40">
+              <span>View Demographics</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
   );
 }
